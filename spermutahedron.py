@@ -5,8 +5,10 @@ from sage.combinat.composition import Compositions
 from sage.combinat.ordered_tree import LabelledOrderedTree, LabelledOrderedTrees
 from sage.combinat.posets.lattices import LatticePoset
 from sage.combinat.posets.posets import Poset
+from sage.functions.other import binomial
 from sage.functions.other import sqrt
 from sage.geometry.polyhedron.constructor import Polyhedron
+from sage.graphs.graph import Graph
 from sage.matrix.constructor import Matrix
 from sage.misc.cachefunc import cached_method
 from sage.misc.inherit_comparison import InheritComparisonClasscallMetaclass
@@ -552,6 +554,19 @@ class SDecreasingTree(Element):
         for asc in self.tree_ascents():
             yield self.rotate_ascent(asc)
 
+    def interval(self, dt2):
+        if not self.sweak_lequal(dt2):
+            return
+        seen = set()
+        L = [self]
+        while len(L) != 0:
+            dt = L.pop()
+            if not dt in seen:
+                seen.add(dt)
+                yield dt
+                L.extend(succ for succ in dt.sweak_succ() if succ.sweak_lequal(dt2))
+
+
     def sweak_prec(self):
         """
         EXAMPLES::
@@ -836,6 +851,56 @@ class SDecreasingTree(Element):
                         return False
         return True
 
+    def is_s_tamari_max(self):
+        n = self.size()
+        s = self.s()
+        for a in range(1,n):
+            for b in range(a+1,n):
+                for c in range(b+1,n+1):
+                    if self.inversion(c,a) < s[c-1]  and self.inversion(b,a) == s[b-1] and self.inversion(c,a) >= self.inversion(c,b):
+                        return False
+        return True
+
+    def s_tamari_class_succ(self):
+        for a,c in self.tree_ascents():
+            for b in range(a+1,c):
+                if self.inversion(c,a) >= self.inversion(c,b) and self.inversion(b,a) == self.s()[b-1]:
+                    yield self.rotate_ascent((a,c))
+
+    def s_tamari_class(self):
+        dt = self.to_s_tamari_min()
+        seen = set()
+        L = [dt]
+        while len(L) != 0:
+            dt = L.pop()
+            if not dt in seen:
+                seen.add(dt)
+                yield dt
+                L.extend(dt.s_tamari_class_succ())
+
+
+    def to_s_tamari_min(self):
+        n = self.size()
+        d = dict(self._invs)
+        for a in range(1,n):
+            for b in range(a+1,n):
+                for c in range(b+1, n+1):
+                    if d.get((c,a),0) > d.get((c,b),0):
+                        d[(c,a)] = d.get((c,b),0)
+        return SDecreasingTree((self.s(), d))
+
+    def to_s_tamari_max(self):
+        n = self.size()
+        s = self.s()
+        d = dict(self._invs)
+        for a in range(1,n):
+            for b in range(a+1,n):
+                for c in range(b+1,n+1):
+                    if self.inversion(c,a) >= self.inversion(c,b) and self.inversion(b,a) == s[b-1]:
+                        d[(c,a)] = s[c-1]
+        return SDecreasingTree((self.s(), d))
+
+
     def tamari_ascents(self):
         r"""
         EXAMPLES::
@@ -894,6 +959,25 @@ class SDecreasingTree(Element):
         x = 0
         return list(read(self._tree))
 
+    def nu_path_traversal(self):
+        r"""
+        EXAMPLES::
+
+            sage: SDecreasingTree(((0,2,2),{})).nu_tree_traversal()
+            [0, 1, 1, 1, 2, 2, 2, 3]
+
+        """
+        def read(t):
+            if len(t) == 0:
+                yield 0
+            else:
+                yield 1
+                for c in reversed(t):
+                    yield from read(c)
+        l = list(read(self._tree))
+        l.pop()
+        return l
+
     def to_nu_tree(self):
         s = self.s()
         nu = tuple(reversed(s))
@@ -910,6 +994,11 @@ class SDecreasingTree(Element):
                     P.append((i,j))
                     break
         return NuTree(nu,P)
+
+    def to_nu_path(self):
+        s = self.s()
+        nu = tuple(reversed(s))
+        return NuPath(nu, self.nu_path_traversal())
 
     ## Realizations
 
@@ -1390,6 +1479,7 @@ class SDecreasingTrees_s(SDecreasingTrees):
         L = list(self)
         return ((x,y) for x in L for y in L if x.sweak_lequal(y))
 
+
     ## S-Tamari
 
     def s_tamari_trees(self):
@@ -1462,6 +1552,12 @@ class SDecreasingTrees_s(SDecreasingTrees):
         """
         return NuTrees(reversed(self.s()))
 
+    def nu_paths(self):
+        r"""
+
+        """
+        return NuPaths(reversed(self.s()))
+
     def nu_tamari_poset(self):
         r"""
         EXAMPLES::
@@ -1471,7 +1567,7 @@ class SDecreasingTrees_s(SDecreasingTrees):
         """
         return self.nu_trees().nu_tamari_poset()
 
-    def nu_tamari_lattice(self):
+    def nu_tamari_lattice_trees(self):
         r"""
         EXAMPLES::
 
@@ -1482,11 +1578,28 @@ class SDecreasingTrees_s(SDecreasingTrees):
         """
         return self.nu_trees().nu_tamari_lattice()
 
-    def nu_tamari_lattice_printer(self):
+    def nu_tamari_lattice_paths(self):
+        r"""
+        EXAMPLES::
+
+            sage: SDecreasingTrees((0,2,2)).s_tamari_lattice()
+            Finite lattice containing 12 elements
+            sage: SDecreasingTrees((0,2,2)).s_tamari_lattice().is_sublattice(SDecreasingTrees((0,2,2)).lattice())
+            True
+        """
+        return self.nu_paths().nu_tamari_lattice()
+
+    def nu_tamari_lattice_printer_trees(self):
         r"""
 
         """
         return self.nu_trees().nu_tamari_lattice_printer()
+
+    def nu_tamari_lattice_printer_paths(self):
+        r"""
+
+        """
+        return self.nu_paths().nu_tamari_lattice_printer()
 
     ## Realizations
 
@@ -2224,6 +2337,22 @@ class SPureIntervalFace(Element):
             return SPureIntervalFace(tjoin, [(a,b) for (a,b) in tjoin.tree_ascents() if tjoin.inversion(b,a) < tmeet.inversion(b,a)])
         else:
             return None
+
+    def is_compatible_variation(self, other, c, a):
+        s = self.s()
+        if not self.varies(c,a) or not other.varies(c,a) or self.inversion_min(c,a) != other.inversion_min(c,a):
+            return False
+
+        for b in range(a+1,c):
+            if self.inversion_min(b,a) > 0 and self.inversion_min(b,a) < s[b-1] and other.inversion_min(b,a) != s[b-1]:
+                return False
+
+            if other.inversion_min(b,a) > 0 and other.inversion_min(b,a) < s[b-1] and self.inversion_min(b,a) != s[b-1]:
+                return False
+        return True
+
+    def compatible_variations(self, other):
+        return {(c,a):self.inversion_min(c,a) for c,a in self.variations() if self.is_compatible_variation(other, c, a)}
 
 
     def tree_set_partition(self, t, i):
@@ -2998,6 +3127,8 @@ class NuTree(Element):
                 fifo.append(leaf)
         return SDecreasingTree(fifo[0])
 
+    def to_nu_path(self):
+        return self.to_s_decreasing_tree().to_nu_path()
 
 
 class NuTrees(UniqueRepresentation, Parent):
@@ -3291,6 +3422,380 @@ class NuTrees_nu(NuTrees):
         """
         matrix = self.s_decreasing_trees().proj_matrix()
         return LatticePrinter(self.nu_tamari_poset(), lambda nut: (Matrix(nut.to_s_decreasing_tree().fixed_3d_coordinates())*matrix)[0], scale=.1, object_printer = lambda nut: latex(nut))
+
+
+@add_metaclass(InheritComparisonClasscallMetaclass)
+class NuPath(Element):
+
+    @staticmethod
+    def __classcall_private__(cls, *args, **opts):
+        """
+        TESTS::
+
+            sage: nut = NuTree((2,2,0),[(0,0),(0,1),(0,2),(0,3),(1,1),(2,1),(3,2),(4,2)])
+            sage: type(nut)
+            <class '__main__.NuTrees_all_with_category.element_class'>
+
+
+        """
+        P = NuPaths_all()
+        return P.element_class(P, *args, **opts)
+
+    def __init__(self, parent, nu, path):
+        r"""
+        EXAMPLES::
+
+            sage: NuTree((2,2,0),[(0,0),(0,1),(0,2),(0,3),(1,1),(2,1),(3,2),(4,2)])
+            ((1, 0, 0, 1, 0, 0, 1), ((0, 0), (0, 1), (0, 2), (0, 3), (1, 1), (2, 1), (3, 2), (4, 2)))
+        """
+        Element.__init__(self, parent)
+        self._nu = nu
+        self._down_path = NuPaths(nu).path()
+        self._up_path = tuple(path)
+
+    def nu(self):
+        return self._nu
+
+    def down_path(self):
+        return self._down_path
+
+    def up_path(self):
+        return self._up_path
+
+
+    def _repr_(self):
+        return str((self._down_path,self._up_path))
+
+    def __eq__(self, other):
+        return isinstance(other,NuPath) and self._hash_key() == other._hash_key()
+
+    def _hash_key(self):
+        return (self._down_path, self._up_path)
+
+    def __hash__(self):
+        return hash(self._hash_key())
+
+    def __cmp__(self,other):
+        if self._hash_key() < other._hash_key():
+            return -1
+        elif self._hash_key() == other._hash_key():
+            return 0
+        else:
+            return 1
+
+    def __ne__(self, other):
+        return not self == other
+
+    def _latex_(self):
+        off = .1
+        st = "\\begin{tikzpicture}\n"
+        point_str = ""
+        x,y = 0,0
+        for v in self._down_path:
+            if v == 1:
+                x1 = x
+                y1 = y+1
+            else:
+                x1 = x+1
+                y1 = y
+            st += "\\draw[line width = 4] (" + str(x) + "," + str(y) + ") -- (" + str(x1) + "," + str(y1) + ");\n"
+            point_str += "\\draw[fill, radius=0.15] (" + str(x) + "," + str(y) +") circle;\n"
+            x,y = x1,y1
+        point_str += "\\draw[fill, radius=0.15] (" + str(x) + "," + str(y) +") circle;\n"
+        st += point_str
+        st+="\n"
+
+        point_str = ""
+        x,y = -off,off
+        for v in self._up_path:
+            if v == 1:
+                x1 = x
+                y1 = y+1
+            else:
+                x1 = x+1
+                y1 = y
+            st += "\\draw[line width = 4, red] (" + str(x) + "," + str(y) + ") -- (" + str(x1) + "," + str(y1) + ");\n"
+            point_str += "\\draw[fill, radius=0.15, red] (" + str(x) + "," + str(y) +") circle;\n"
+            x,y = x1,y1
+        point_str += "\\draw[fill, radius=0.15, red] (" + str(x) + "," + str(y) +") circle;\n"
+        st += point_str
+        st+="\n"
+
+        st+="\\end{tikzpicture}"
+        return st
+
+    def to_s_decreasing_tree(self):
+        r"""
+        EXAMPLES::
+
+            sage: nut = NuTree((2,2,0),[(0,0),(0,1),(0,2),(0,3),(1,1),(2,1),(3,2),(4,2)])
+            sage: nut.to_s_decreasing_tree()
+            3[2[1[[]], [], []], [], []]
+
+        TESTS::
+
+            sage: all(t.to_nu_tree().to_s_decreasing_tree() == t for t in SDecreasingTrees((0,2,2)).s_tamari_trees())
+            True
+            sage: all(t.to_nu_tree().to_s_decreasing_tree() == t for t in SDecreasingTrees((0,0,2)).s_tamari_trees())
+            True
+            sage: all(t.to_nu_tree().to_s_decreasing_tree() == t for t in SDecreasingTrees((0,2,0,2)).s_tamari_trees())
+            True
+        """
+        n = len(self.nu())
+        s = tuple(reversed(self.nu()))
+        v = [n]
+        def r(path, v):
+            if len(path) == 0:
+                return LabelledOrderedTree([], label="")
+            step = path.pop()
+            if step == 0:
+                return LabelledOrderedTree([], label="")
+            else:
+                l = v[0]
+                v[0]-=1
+                children = [r(path,v) for i in range(s[l-1]+1)]
+                children.reverse()
+                return LabelledOrderedTree(children, label = l)
+        path = list(reversed(self._up_path))
+        return SDecreasingTree(r(path,v))
+
+    def to_nu_tree(self):
+        return self.to_s_decreasing_tree().to_nu_tree()
+
+
+
+
+
+class NuPaths(UniqueRepresentation, Parent):
+
+    def __call__(self, *args, **keywords):
+
+        if isinstance(args[0], NuTree):
+            return args[0]
+
+        return super(NuPaths, self).__call__(*args, **keywords)
+
+    @staticmethod
+    def __classcall_private__(cls, nu=None):
+
+        if nu is None:
+            return NuPaths_all()
+
+        return NuPaths_nu(tuple(nu))
+
+    @staticmethod
+    def nu_to_path(nu):
+        p = []
+        for a in nu:
+            p.append(1)
+            p.extend([0]*a)
+        return tuple(p)
+
+    @staticmethod
+    def some_nu():
+        return [tuple(reversed(s)) for s in SDecreasingTrees.some_s()]
+
+
+
+class NuPaths_all(DisjointUnionEnumeratedSets, NuTrees):
+
+    def __init__(self):
+        DisjointUnionEnumeratedSets.__init__(
+            self, Family(Compositions(), lambda c : NuTrees_s(tuple(v-1 for v in c))),
+            facade=True, keepkey=False, category=EnumeratedSets())
+
+    def _repr_(self):
+        return "NuPaths"
+
+    def _element_constructor_(self, data = None):
+        return self.element_class(self, data)
+
+    def __contains__(self, t):
+        """
+        TESTS::
+
+            sage: SDecreasingTrees().an_element() in SDecreasingTrees()
+            True
+
+        """
+        return isinstance(t, self.element_class)
+
+    Element = NuPath
+
+class NuPaths_nu(NuTrees):
+    """
+        TESTS::
+
+            sage: for nu in NuTrees.some_nu():
+            ....:     TestSuite(NuTrees(nu)).run()
+    """
+
+    def __init__(self, nu):
+        Parent.__init__(self, category=FiniteEnumeratedSets())
+        self._nu = tuple(nu)
+        self._path = NuPaths.nu_to_path(nu)
+        self._n = sum(1 for i in self._path if i == 0) + 1
+        self._m = sum(self._path) + 1
+
+    def __contains__(self,t):
+        """
+        TESTS::
+
+            sage: NT = NuTrees((2,0))
+            sage: NT.an_element() in NT
+            True
+            sage: NuTrees((3,0)).an_element() in NT
+            False
+
+        """
+        return isinstance(t, self.element_class) and t.nu() == self.nu()
+
+    def __iter__(self):
+        r"""
+        EXAMPLES::
+
+            sage: list(NuTrees(tuple()))
+            [((), ((0, 0),))]
+            sage: list(NuTrees((1,)))
+            [((1, 0), ((0, 0), (1, 1), (0, 1)))]
+            sage: list(NuTrees((2,)))
+            [((1, 0, 0), ((0, 0), (2, 1), (1, 1), (0, 1)))]
+            sage: list(NuTrees((0,2)))
+            [((1, 1, 0, 0), ((0, 0), (0, 1), (2, 2), (1, 2), (0, 2)))]
+            sage: list(NuTrees((0,2,2)))
+            [((1, 1, 0, 0, 1, 0, 0), ((0, 0), (0, 1), (2, 2), (1, 2), (0, 2), (4, 3), (3, 3), (0, 3))),
+             ((1, 1, 0, 0, 1, 0, 0), ((0, 0), (0, 1), (2, 2), (1, 2), (4, 3), (3, 3), (1, 3), (0, 3))),
+             ((1, 1, 0, 0, 1, 0, 0), ((0, 0), (0, 1), (2, 2), (4, 3), (3, 3), (2, 3), (1, 3), (0, 3)))]
+            sage: list(NuTrees((2,2,0)))
+            [((1, 0, 0, 1, 0, 0, 1), ((0, 0), (2, 1), (1, 1), (0, 1), (4, 2), (3, 2), (0, 2), (0, 3))),
+             ((1, 0, 0, 1, 0, 0, 1), ((0, 0), (2, 1), (1, 1), (0, 1), (4, 2), (3, 2), (3, 3), (0, 3))),
+             ((1, 0, 0, 1, 0, 0, 1), ((0, 0), (2, 1), (1, 1), (0, 1), (4, 2), (4, 3), (3, 3), (0, 3))),
+             ((1, 0, 0, 1, 0, 0, 1), ((0, 0), (2, 1), (1, 1), (4, 2), (3, 2), (1, 2), (0, 2), (0, 3))),
+             ((1, 0, 0, 1, 0, 0, 1), ((0, 0), (2, 1), (1, 1), (4, 2), (3, 2), (1, 2), (1, 3), (0, 3))),
+             ((1, 0, 0, 1, 0, 0, 1), ((0, 0), (2, 1), (1, 1), (4, 2), (3, 2), (3, 3), (1, 3), (0, 3))),
+             ((1, 0, 0, 1, 0, 0, 1), ((0, 0), (2, 1), (1, 1), (4, 2), (4, 3), (3, 3), (1, 3), (0, 3))),
+             ((1, 0, 0, 1, 0, 0, 1), ((0, 0), (2, 1), (4, 2), (3, 2), (2, 2), (1, 2), (0, 2), (0, 3))),
+             ((1, 0, 0, 1, 0, 0, 1), ((0, 0), (2, 1), (4, 2), (3, 2), (2, 2), (1, 2), (1, 3), (0, 3))),
+             ((1, 0, 0, 1, 0, 0, 1), ((0, 0), (2, 1), (4, 2), (3, 2), (2, 2), (2, 3), (1, 3), (0, 3))),
+             ((1, 0, 0, 1, 0, 0, 1), ((0, 0), (2, 1), (4, 2), (3, 2), (3, 3), (2, 3), (1, 3), (0, 3))),
+             ((1, 0, 0, 1, 0, 0, 1), ((0, 0), (2, 1), (4, 2), (4, 3), (3, 3), (2, 3), (1, 3), (0, 3)))]
+        """
+        for t in self.s_decreasing_trees().s_tamari_trees():
+            yield t.to_nu_path()
+
+    def _repr_(self):
+        return "NuPaths of {}".format(self._nu)
+
+    def nu(self):
+        r"""
+        EXAMPLES::
+
+            sage: NuTrees((2,2,0)).nu()
+            (2, 2, 0)
+
+        """
+        return self._nu
+
+    def path(self):
+        r"""
+        EXAMPLES::
+
+            sage: NuTrees((2,2,0)).path()
+            (1, 0, 0, 1, 0, 0, 1)
+
+        """
+        return self._path
+
+    def n(self):
+        r"""
+        EXAMPLES::
+
+            sage: NuTrees((2,2,0)).n()
+            5
+
+        """
+        return self._n
+
+    def m(self):
+        r"""
+        EXAMPLES::
+
+            sage: NuTrees((2,2,0)).m()
+            4
+        """
+        return self._m
+
+    def cardinality(self):
+        """
+        EXAMPLES::
+
+            sage: NuTrees((1,1,1)).cardinality()
+            5
+            sage: NuTrees((2,2,2)).cardinality()
+            12
+
+        """
+        return self.s_decreasing_trees().s_catalan_cardinality()
+
+    def s_decreasing_trees(self):
+        r"""
+        EXAMPLES::
+
+            sage: NuTrees((2,2,0)).s_decreasing_trees()
+            S-decreasing trees of (0, 2, 2)
+        """
+        return SDecreasingTrees(reversed(self.nu()))
+
+    @lazy_attribute
+    def _parent_for(self):
+        r"""
+        The parent of the element generated by ``self``.
+
+        TESTS::
+
+            sage: NuTrees((0,2,2))._parent_for
+            NuTrees
+        """
+        return NuPaths_all()
+
+    # This is needed because this is a facade parent via DisjointUnionEnumeratedSets
+    @lazy_attribute
+    def element_class(self):
+        r"""
+        TESTS::
+
+            sage: NuTrees((0,2,2)).element_class
+            <class '__main__.NuTrees_all_with_category.element_class'>
+        """
+        return self._parent_for.element_class
+
+
+    def nu_tamari_poset(self):
+        r"""
+        EXAMPLES::
+
+            sage: NuTrees((2,2,0)).nu_tamari_poset()
+            Finite poset containing 12 elements
+        """
+        return Poset([list(self), lambda x,y: x.to_s_decreasing_tree().sweak_lequal(y.to_s_decreasing_tree())])
+
+    def nu_tamari_lattice(self):
+        r"""
+        EXAMPLES::
+
+            sage: NuTrees((2,2,0)).nu_tamari_lattice()
+            Finite lattice containing 12 elements
+
+        """
+        return LatticePoset(self.nu_tamari_poset())
+
+    def nu_tamari_lattice_printer(self):
+        r"""
+
+        """
+        matrix = self.s_decreasing_trees().proj_matrix()
+        return LatticePrinter(self.nu_tamari_poset(), lambda nut: (Matrix(nut.to_s_decreasing_tree().fixed_3d_coordinates())*matrix)[0], scale=.1, object_printer = lambda nut: latex(nut))
+
 
 ###
 
@@ -3903,3 +4408,178 @@ def test_faces_dimensions(s):
 
     return True
 
+### Test s_tamari quotient
+
+# tested for
+# 011
+# 022
+# 0122
+# 0212
+# 02232
+def test_s_tamari_max(s):
+    return len([dt for dt in SDecreasingTrees(s) if dt.is_s_tamari()]) == len([dt for dt in SDecreasingTrees(s) if dt.is_s_tamari_max()])
+
+
+# tested for
+# 011
+# 022
+# 0122
+# 0212
+# 0222
+# 02232
+def test_in_class(s):
+    for dt in SDecreasingTrees(s):
+        if not dt in set(dt.s_tamari_class()):
+            return dt
+    return True
+
+# tested for
+# 011
+# 022
+# 0122
+# 0212
+# 0222
+# 02232
+def test_size_classes(s):
+    c = 0
+    for dt in SDecreasingTrees(s).s_tamari_trees():
+        c+= len(list(dt.s_tamari_class()))
+    return c == SDecreasingTrees(s).cardinality()
+
+# tested for
+# 011
+# 022
+# 0122
+# 0212
+# 0222
+# 02232
+def test_to_s_tamari_min(s):
+    for dt in SDecreasingTrees(s):
+        if not dt.to_s_tamari_min().is_s_tamari():
+            return dt
+    return True
+
+# tested for
+# 011
+# 022
+# 0122
+# 0212
+# 0222
+# 02232
+def test_to_s_tamari_max(s):
+    for dt in SDecreasingTrees(s):
+        if not dt.to_s_tamari_max().is_s_tamari_max():
+            return dt
+    return True
+
+def test_s_tamari_min_dict(dt):
+    n = dt.size()
+    d = dict(dt._invs)
+    for a in range(1,n):
+        for b in range(a+1,n):
+            for c in range(b+1, n+1):
+                if d.get((c,a),0) > d.get((c,b),0):
+                    d[(c,a)] = d.get((c,b),0)
+    dt_min = SDecreasingTree((dt.s(),d))
+    return all(d.get((b,a),0) == dt_min.inversion(b,a) for b,a in dt_min.inversions())
+
+
+def test_s_tamari_max_dict(dt):
+    n = dt.size()
+    s = dt.s()
+    d = dict(dt._invs)
+    for a in range(1,n):
+        for b in range(a+1,n):
+            for c in range(b+1,n+1):
+                if dt.inversion(c,a) >= dt.inversion(c,b) and dt.inversion(b,a) == s[b-1]:
+                    d[(c,a)] = s[c-1]
+    dt_max = SDecreasingTree((s,d))
+    return all(d.get((b,a),0) == dt_max.inversion(b,a) for b,a in dt_max.inversions())
+
+# tested for
+# 011
+# 022
+# 0122
+# 0212
+# 0222
+# 02232
+def test_all_s_tamari_min_dict(s):
+    for dt in SDecreasingTrees(s):
+        if not test_s_tamari_min_dict(dt):
+            return dt
+    return True
+
+# tested for
+# 011
+# 022
+# 0122
+# 0212
+# 0222
+# 02232
+def test_all_s_tamari_max_dict(s):
+    for dt in SDecreasingTrees(s):
+        if not test_s_tamari_max_dict(dt):
+            return dt
+    return True
+
+# tested for
+# 011
+# 022
+# 0122
+# 0212
+# 0222
+def test_order_preserving_min(s):
+    for dt1 in SDecreasingTrees(s):
+        for dt2 in SDecreasingTrees(s):
+            if dt1.sweak_lequal(dt2) and not dt1.to_s_tamari_min().sweak_lequal(dt2.to_s_tamari_min()):
+                return dt1,dt2
+    return True
+
+def test_order_preserving_max(s):
+    for dt1 in SDecreasingTrees(s):
+        for dt2 in SDecreasingTrees(s):
+            if dt1.sweak_lequal(dt2) and not dt1.to_s_tamari_max().sweak_lequal(dt2.to_s_tamari_max()):
+                return dt1,dt2
+    return True
+
+
+## lattice doublings ##
+
+#tested
+# 222
+# 2222
+# 22322
+def check_doublings_disjoint_intervals(s):
+    initial = [0] * len(s)
+    E = {SDecreasingTree((initial, {}))}
+    #yield Poset([E, lambda x,y: x.sweak_lequal(y)])
+    for i in range(len(s)):
+        c =  i+1
+        for v in range(s[i]):
+            E = {dt.increase_arity(c) for dt in E}
+            for a in range(c-1,0,-1):
+                select = {dt for dt in E if dt.select_double(c,a)}
+                mins = set()
+                maxs = set()
+                for dt in select:
+                    if not any(dt2.sweak_lequal(dt) for dt2 in mins):
+                        r = set(dt2 for dt2 in mins if dt.sweak_lequal(dt2))
+                        mins.difference_update(r)
+                        mins.add(dt)
+                    if not any(dt.sweak_lequal(dt2) for dt2 in maxs):
+                        r = set(dt2 for dt2 in maxs if dt2.sweak_lequal(dt))
+                        maxs.difference_update(r)
+                        maxs.add(dt)
+                if len(mins) != len(maxs):
+                    return select
+                d = {dmin : [dt for dt in maxs if dmin.sweak_lequal(dt)] for dmin in mins}
+                if not all(len(d[dmin]) == 1 for dmin in mins):
+                    return select
+                if not all(dt in select for dmin in d for dt in dmin.interval(d[dmin][0]) if dt in E):
+                    return select
+
+
+                E.update(dt.rotate_ascent((a,c)) for dt in select)
+                #yield Poset([list(E), lambda x,y: x.sweak_lequal(y)])
+
+    return True
