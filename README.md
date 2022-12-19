@@ -3,9 +3,11 @@
 [![Binder](https://beta.mybinder.org/badge.svg)](https://mybinder.org/v2/gh/VivianePons/SWeakOrder/main)
 
 
-You will find here some raw research code and a demo related to the following papers:
+You will find here some raw research code and a demo related to the following series of papers:
 
-[1] C. Ceballos and V. Pons, s-Weak Order and s-Weak Permutahedra
+[1] C. Ceballos and V. Pons. The s-weak order and s-permutahedra I: Combinatorics and Lattice Structure
+[2] C. Ceballos and V. Pons. The s-weak order and s-permutahedra . In *31st International Conference on "Formal Power Series and Algebraic Combinatorics" (FPSAC 2019)*, volume 82B, Art. 76. Hanover, United States, 2019. Séminaire Lotharingien de Combinatoire. 
+
 
 They present examples and implementations of the computations and algorithms described in the papers. You can run them yourself and experiment by [clicking on this binder link](https://mybinder.org/v2/gh/VivianePons/SWeakOrder/main). (Expect to wait a few minutes for the server to load).
 
