@@ -6,6 +6,7 @@
 You will find here some raw research code and a demo related to the following series of papers:
 
 [1] C. Ceballos and V. Pons. The s-weak order and s-permutahedra I: Combinatorics and Lattice Structure
+
 [2] C. Ceballos and V. Pons. The s-weak order and s-permutahedra . In *31st International Conference on "Formal Power Series and Algebraic Combinatorics" (FPSAC 2019)*, volume 82B, Art. 76. Hanover, United States, 2019. Séminaire Lotharingien de Combinatoire. 
 
 
