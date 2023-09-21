@@ -2181,6 +2181,20 @@ class SPureIntervalFace(Element):
         return LatticePrinter(poset, lambda t: (Matrix(t.subtree(nodes).fixed_3d_coordinates())*matrix)[0], object_printer = lambda t: latex(t).replace("[auto]","[every node/.style={inner sep = 3pt}]"), **args)
 
 
+    def complex_printer(self,**args):
+        r"""
+
+        """
+        poset = self.interval_as_poset()
+        cover_relations = [(SPureIntervalFace(t1,[]), SPureIntervalFace(t2,[])) for t1,t2 in poset.cover_relations()]
+        nodes = set(v for a in self.ascents() for v in a)
+
+        st = self.tree_min().subtree(nodes)
+
+        matrix = SDecreasingTrees(st.s()).proj_matrix()
+        return ComplexPrinter(list(self.sub_faces()), cover_relations, lambda t: (Matrix(t.subtree(nodes).fixed_3d_coordinates())*matrix)[0], object_printer = lambda t: latex(t).replace("[auto]","[every node/.style={inner sep = 3pt}]"), **args)
+
+
     def include_face(self, other):
         r"""
         EXAMPLES::
@@ -2428,11 +2442,11 @@ class SPureIntervalFace(Element):
             if ff.include_tree(t):
                 yield self.sub_face_to_set_partition(ff)
 
-    def f_vector(self):
+    def f_polynomial(self):
         r"""
         EXAMPLES::
 
-            sage: SPureIntervalFace(SDecreasingTree(((0,2,2),{(3,2):1, (3,1):1, (2,1):1})),[(1,2),(2,3)]).f_vector()
+            sage: SPureIntervalFace(SDecreasingTree(((0,2,2),{(3,2):1, (3,1):1, (2,1):1})),[(1,2),(2,3)]).f_polynomial()
             (1, 5, 5, 1)
         """
         v = [0] * (self.dimension()+2)
@@ -2626,6 +2640,24 @@ class SPureIntervalFace(Element):
             for face in facets:
                 pol2 = Polyhedron([get_point(t) for t in face.interval_trees()])
                 v_ieqs.extend([i for i in ieqs if all(not i.interior_contains(v) for v in pol2.vertices())])
+            v_ieqs.extend(borders)
+            return Polyhedron(ieqs = v_ieqs, eqns = pol.equations())
+        return None
+
+    def s_tamari_get_point(self,t, get_point = None):
+        if get_point is None:
+            get_point = SDecreasingTrees(self.s())._get_point_default
+        facets = [ft for ft in self.sub_facets() if ft.is_s_tamari_valid()]
+        borders = SDecreasingTrees(self.s()).s_tamari_border_inequalities()
+        v_ieqs = []
+        if len(facets) > 0:
+            pol = self.s_weak_polyhedron(get_point)
+            ieqs = pol.inequalities()
+            for face in facets:
+                if face.include_tree(t):
+                    pol2 = Polyhedron([get_point(t2) for t2 in face.interval_trees()])
+                    v_ieqs.extend([i for i in ieqs if all(not i.interior_contains(v) for v in pol2.vertices())])
+            print(v_ieqs)
             v_ieqs.extend(borders)
             return Polyhedron(ieqs = v_ieqs, eqns = pol.equations())
         return None
@@ -2924,11 +2956,11 @@ class SPureIntervalFaces_s(SPureIntervalFaces):
         yield from self.faces(self.n() - 1)
 
     @cached_method
-    def f_vector(self):
+    def f_polynomial(self):
         r"""
         EXAMPLES::
 
-            sage: SPureIntervalFaces((0,2,2)).f_vector()
+            sage: SPureIntervalFaces((0,2,2)).f_polynomial()
             6*t^2 + 20*t + 15
 
         """
@@ -2942,20 +2974,20 @@ class SPureIntervalFaces_s(SPureIntervalFaces):
         if len(s) == 2:
             return b+1+b*t
         if a == 0:
-            return (b+1 + b*t) * SPureIntervalFaces(s[:-2] + (b,)).f_vector()
-        return (b+1) * SPureIntervalFaces(s[:-2] + (a+b,)).f_vector() + b*t*SPureIntervalFaces(s[:-2]+(a+b-1,)).f_vector()
+            return (b+1 + b*t) * SPureIntervalFaces(s[:-2] + (b,)).f_polynomial()
+        return (b+1) * SPureIntervalFaces(s[:-2] + (a+b,)).f_polynomial() + b*t*SPureIntervalFaces(s[:-2]+(a+b-1,)).f_polynomial()
 
-    def f_vector_explicit(self):
+    def f_polynomial_explicit(self):
         r"""
         EXAMPLES::
 
-            sage: SPureIntervalFaces((0,2,2)).f_vector_explicit()
+            sage: SPureIntervalFaces((0,2,2)).f_polynomial_explicit()
             6*t^2 + 20*t + 15
 
         TESTS::
 
             sage: tested = [(0,1,1),(0,1,1,1),(0,2,2),(0,2,2,2),(0,3,3),(0,3,3,3),(0,0,2),(0,3,0,3)]
-            sage: all(SPureIntervalFaces(s).f_vector() == SPureIntervalFaces(s).f_vector_explicit() for s in tested)
+            sage: all(SPureIntervalFaces(s).f_polynomial() == SPureIntervalFaces(s).f_polynomial_explicit() for s in tested)
             True
 
         """
@@ -2977,7 +3009,20 @@ class SPureIntervalFaces_s(SPureIntervalFaces):
             97027775945
 
         """
-        return self.f_vector()(t=1)
+        return self.f_polynomial()(t=1)
+
+    def proj_matrix(self):
+        return SDecreasingTrees(self.s()).proj_matrix()
+
+    def complex_printer(self,**args):
+        r"""
+
+        """
+        L = SDecreasingTrees(self.s()).lattice()
+        cover_relations = [(SPureIntervalFace(t1,[]), SPureIntervalFace(t2,[])) for t1,t2 in L.cover_relations()]
+        matrix = self.proj_matrix()
+        return ComplexPrinter(list(self), cover_relations, lambda t: (Matrix(t.fixed_3d_coordinates())*matrix)[0], object_printer = lambda t: latex(t).replace("[auto]","[every node/.style={inner sep = 3pt}]"), **args)
+
 
 @add_metaclass(InheritComparisonClasscallMetaclass)
 class NuTree(Element):
@@ -3829,7 +3874,55 @@ class LatticePrinter():
         st+="\\end{tikzpicture}"
         return st
 
+class ComplexPrinter():
 
+    def __init__(self, objects, cover_relations, get_pos, scales = None, object_printer = None):
+        self._objects = objects
+        self._cover_relations = cover_relations
+        self._scales = scales
+        if object_printer is None:
+            object_printer = lambda x: latex(x)
+        if scales is None:
+            scales = {0: .1, 1:.15, 2:.2}
+        self._scales = scales
+        self._object_printer = object_printer
+        self._get_pos = get_pos
+
+
+    def _latex_(self):
+
+        st = "\\begin{tikzpicture}[every node/.style={inner sep = -.5pt}]\n"
+        hd = ""
+        ids = {}
+        i = 0
+        for t in self._objects:
+            SCALE = self._scales[t.dimension()]
+            ids[t] = i
+            px = 0.
+            py = 0.
+            nt = 0
+            for v in t.sub_faces(0):
+                p = self._get_pos(v.tree_min())
+                px += p[0].n()
+                py += p[1].n()
+                nt +=1
+            p = (px / nt, py /nt)
+            tmp = ""
+            tmp+= "\\node(tree" + str(i) + ") at (" + str(p[0]) + "," + str(p[1]) + ") {\\scalebox{" + str(SCALE) +"}{$\n"
+            tmp+= self._object_printer(t)
+            tmp+="\n$}};\n"
+            if t.dimension() == 0:
+                st+=tmp
+            else:
+                hd += tmp
+
+            i+=1
+        st+="\n"
+        for t1,t2 in self._cover_relations:
+            st+="\\draw (tree" + str(ids[t1]) +") -- (tree" + str(ids[t2]) + ");\n"
+        st+=hd
+        st+="\\end{tikzpicture}"
+        return st
 
 
 #### test functions ####
