@@ -5,6 +5,7 @@ from sage.combinat.composition import Compositions
 from sage.combinat.ordered_tree import LabelledOrderedTree, LabelledOrderedTrees
 from sage.combinat.posets.lattices import LatticePoset
 from sage.combinat.posets.posets import Poset
+from sage.combinat.set_partition_ordered import OrderedSetPartition
 from sage.functions.other import binomial
 from sage.functions.other import sqrt
 from sage.geometry.polyhedron.constructor import Polyhedron
@@ -753,6 +754,25 @@ class SDecreasingTree(Element):
                 if dimension is None or len(subs) == dimension:
                     yield SPureIntervalFace(self, subs)
 
+    def pure_s_tam_intervals_starting(self, dimension = None):
+        r"""
+        EXAMPLES::
+
+            sage: list(SDecreasingTree(((0,2,2),{})).pure_intervals_starting())
+            [(3[2[1[[]], [], []], [], []], ()),
+             (3[2[1[[]], [], []], [], []], ((1, 2),)),
+             (3[2[1[[]], [], []], [], []], ((2, 3),)),
+             (3[2[1[[]], [], []], [], []], ((1, 2), (2, 3)))]
+            sage: list(SDecreasingTree(((0,2,2),{})).pure_intervals_starting(1))
+            [(3[2[1[[]], [], []], [], []], ((1, 2),)),
+             (3[2[1[[]], [], []], [], []], ((2, 3),))]
+        """
+        A = list(self.tamari_ascents())
+        if dimension is None or len(A) >= dimension:
+            for subs in subsets(A):
+                if dimension is None or len(subs) == dimension:
+                    yield SPureIntervalFace(self, subs)
+
     def variations(self, other):
         if not self.sweak_lequal(other):
             return None
@@ -952,6 +972,24 @@ class SDecreasingTree(Element):
         def read(t):
             nonlocal x
             yield x
+            if len(t) > 0:
+                x+=1
+            for c in reversed(t):
+                yield from read(c)
+        x = 0
+        return list(read(self._tree))
+
+    def nu_tree_traversal_label(self):
+        r"""
+        EXAMPLES::
+
+            sage: SDecreasingTree(((0,2,2),{})).nu_tree_traversal()
+            [0, 1, 1, 1, 2, 2, 2, 3]
+
+        """
+        def read(t):
+            nonlocal x
+            yield (t.label(),x)
             if len(t) > 0:
                 x+=1
             for c in reversed(t):
@@ -2164,6 +2202,32 @@ class SPureIntervalFace(Element):
                     if v.sweak_lequal(maxt):
                         L.append(v)
 
+    def interval_trees_s_tamari(self):
+        r"""
+        EXAMPLES::
+
+            sage: list(SPureIntervalFace(SDecreasingTree(((0,2,2),{})),[(1,2)]).interval_trees())
+            [3[2[1[[]], [], []], [], []], 3[2[[], 1[[]], []], [], []]]
+            sage: list(SPureIntervalFace(SDecreasingTree(((0,2,2),{})),[(1,2),(2,3)]).interval_trees())
+            [3[2[1[[]], [], []], [], []],
+             3[1[[]], 2[[], [], []], []],
+             3[[], 2[1[[]], [], []], []],
+             3[[], 2[[], 1[[]], []], []],
+             3[2[[], 1[[]], []], [], []]]
+        """
+        t = self.tree_min()
+        maxt = self.tree_max()
+        L = [t]
+        seen = set()
+        while len(L) > 0:
+            tt = L.pop()
+            if not tt in seen:
+                seen.add(tt)
+                yield tt
+                for v in tt.s_tamari_succ():
+                    if v.sweak_lequal(maxt):
+                        L.append(v)
+
     def interval_as_poset(self):
         return Poset((list(self.interval_trees()), lambda x,y : x.sweak_lequal(y)))
 
@@ -2253,6 +2317,40 @@ class SPureIntervalFace(Element):
                 if self.include_face(f):
                     yield f
 
+    def sub_faces_s_tam(self, dimension = None):
+        r"""
+        EXAMPLES::
+
+            sage: list(SPureIntervalFace(SDecreasingTree(((0,2,2),{})),[(1,2),(2,3)]).sub_faces())
+            [(3[2[1[[]], [], []], [], []], ()),
+             (3[2[1[[]], [], []], [], []], ((1, 2),)),
+             (3[2[1[[]], [], []], [], []], ((2, 3),)),
+             (3[2[1[[]], [], []], [], []], ((1, 2), (2, 3))),
+             (3[1[[]], 2[[], [], []], []], ()),
+             (3[1[[]], 2[[], [], []], []], ((1, 3),)),
+             (3[[], 2[1[[]], [], []], []], ()),
+             (3[[], 2[1[[]], [], []], []], ((1, 2),)),
+             (3[[], 2[[], 1[[]], []], []], ()),
+             (3[2[[], 1[[]], []], [], []], ()),
+             (3[2[[], 1[[]], []], [], []], ((2, 3),))]
+            sage: list(SPureIntervalFace(SDecreasingTree(((0,2,2),{})),[(1,2),(2,3)]).sub_faces(1))
+            [(3[2[1[[]], [], []], [], []], ((1, 2),)),
+             (3[2[1[[]], [], []], [], []], ((2, 3),)),
+             (3[1[[]], 2[[], [], []], []], ((1, 3),)),
+             (3[[], 2[1[[]], [], []], []], ((1, 2),)),
+             (3[2[[], 1[[]], []], [], []], ((2, 3),))]
+            sage: list(SPureIntervalFace(SDecreasingTree(((0,2,2),{})),[(1,2),(2,3)]).sub_faces(0))
+            [(3[2[1[[]], [], []], [], []], ()),
+             (3[1[[]], 2[[], [], []], []], ()),
+             (3[[], 2[1[[]], [], []], []], ()),
+             (3[[], 2[[], 1[[]], []], []], ()),
+             (3[2[[], 1[[]], []], [], []], ())]
+        """
+        for t in self.interval_trees_s_tamari():
+            for f in t.pure_s_tam_intervals_starting(dimension):
+                if self.include_face(f):
+                    yield f
+
     def sub_facets(self):
         r"""
         EXAMPLES::
@@ -2265,6 +2363,19 @@ class SPureIntervalFace(Element):
              (3[2[[], 1[[]], []], [], []], ((2, 3),))]
         """
         yield from self.sub_faces(self.dimension() - 1)
+
+    def sub_facets_s_tam(self):
+        r"""
+        EXAMPLES::
+
+            sage: list(SPureIntervalFace(SDecreasingTree(((0,2,2),{})),[(1,2),(2,3)]).sub_facets())
+            [(3[2[1[[]], [], []], [], []], ((1, 2),)),
+             (3[2[1[[]], [], []], [], []], ((2, 3),)),
+             (3[1[[]], 2[[], [], []], []], ((1, 3),)),
+             (3[[], 2[1[[]], [], []], []], ((1, 2),)),
+             (3[2[[], 1[[]], []], [], []], ((2, 3),))]
+        """
+        yield from self.sub_faces_s_tam(self.dimension() - 1)
 
     def sub_facets_ordered_partitions(self):
         nn = set(range(1,self.size()+1))
@@ -2442,11 +2553,11 @@ class SPureIntervalFace(Element):
             if ff.include_tree(t):
                 yield self.sub_face_to_set_partition(ff)
 
-    def f_polynomial(self):
+    def f_vector(self):
         r"""
         EXAMPLES::
 
-            sage: SPureIntervalFace(SDecreasingTree(((0,2,2),{(3,2):1, (3,1):1, (2,1):1})),[(1,2),(2,3)]).f_polynomial()
+            sage: SPureIntervalFace(SDecreasingTree(((0,2,2),{(3,2):1, (3,1):1, (2,1):1})),[(1,2),(2,3)]).f_vector()
             (1, 5, 5, 1)
         """
         v = [0] * (self.dimension()+2)
@@ -2695,6 +2806,27 @@ class SPureIntervalFace(Element):
             for p in self.left_movable_paths(j):
                 yield p1 + p
 
+    def to_nu_tree(self):
+        s = self.s()
+        nu = tuple(reversed(s))
+        NT = NuTrees(nu)
+
+        L = self.tree_min().nu_tree_traversal_label()
+        n = NT.n()
+        m = NT.m()
+        P = []
+        Preduced = []
+        ascents = {i for i,j in self.ascents()}
+        for v,j in L:
+            start = n-1 if len(P) == 0 or P[-1][1] != j else P[-1][0] -1
+            for i in range(start,-1,-1):
+                if NT.is_above((i,j)) and all(NT.is_compatible(p,(i,j)) for p in P):
+                    P.append((i,j))
+                    if not v in ascents:
+                        Preduced.append((i,j))
+                    break
+        return NuTree(nu,Preduced)
+
 
 
 class SPureIntervalFaces(UniqueRepresentation, Parent):
@@ -2816,6 +2948,26 @@ class SPureIntervalFaces_s(SPureIntervalFaces):
         for t in SDecreasingTrees(self.s()):
             yield from t.pure_intervals_starting()
 
+    def s_tamari_pure(self):
+        r"""
+        EXAMPLES::
+
+            sage: list(SPureIntervalFaces(tuple()))
+            [([], ())]
+            sage: list(SPureIntervalFaces((1,)))
+            [(1[[], []], ())]
+            sage: list(SPureIntervalFaces((2,)))
+            [(1[[], [], []], ())]
+            sage: list(SPureIntervalFaces((0,2)))
+            [(2[1[[]], [], []], ()),
+             (2[1[[]], [], []], ((1, 2),)),
+             (2[[], 1[[]], []], ()),
+             (2[[], 1[[]], []], ((1, 2),)),
+             (2[[], [], 1[[]]], ())]
+        """
+        for t in SDecreasingTrees(self.s()).s_tamari_trees():
+            yield from t.pure_s_tam_intervals_starting()
+
     def faces(self, dimension):
         r"""
         EXAMPLES::
@@ -2885,6 +3037,11 @@ class SPureIntervalFaces_s(SPureIntervalFaces):
         """
         for t in SDecreasingTrees(self.s()):
             yield from t.pure_intervals_starting(dimension)
+
+    def faces_s_tamari(self, dimension):
+
+        for t in SDecreasingTrees(self.s()).s_tamari_trees():
+            yield from t.pure_s_tam_intervals_starting(dimension)
 
     def border_faces(self, dimension = None):
         r"""
@@ -3023,6 +3180,24 @@ class SPureIntervalFaces_s(SPureIntervalFaces):
         matrix = self.proj_matrix()
         return ComplexPrinter(list(self), cover_relations, lambda t: (Matrix(t.fixed_3d_coordinates())*matrix)[0], object_printer = lambda t: latex(t).replace("[auto]","[every node/.style={inner sep = 3pt}]"), **args)
 
+    def s_tamari_complex_printer(self, dict_pos = None, **args):
+        L = SDecreasingTrees(self.s()).s_tamari_lattice()
+        cover_relations = [(SPureIntervalFace(t1,[]), SPureIntervalFace(t2,[])) for t1,t2 in L.cover_relations()]
+        matrix = self.proj_matrix()
+        if dict_pos is None:
+            dict_pos = {t: t.fixed_3d_coordinates() for t in L}
+        return ComplexPrinter(list(self.s_tamari_pure()), cover_relations, lambda t: (Matrix(dict_pos[t])*matrix)[0], object_printer = lambda t: latex(t).replace("[auto]","[every node/.style={inner sep = 3pt}]"), sub_faces_0 = lambda f:f.sub_faces_s_tam(0), **args)
+
+    def nu_tamari_complex_printer(self, dict_pos = None, scales = None, **args):
+        L = SDecreasingTrees(self.s()).s_tamari_lattice()
+        cover_relations = [(SPureIntervalFace(t1,[]), SPureIntervalFace(t2,[])) for t1,t2 in L.cover_relations()]
+        matrix = self.proj_matrix()
+        if dict_pos is None:
+            dict_pos = {t: t.fixed_3d_coordinates() for t in L}
+        if scales is None:
+            scales = {0: .06, 1:.08, 2:.15}
+        return ComplexPrinter(list(self.s_tamari_pure()), cover_relations, lambda t: (Matrix(dict_pos[t])*matrix)[0], object_printer = lambda t: latex(t.to_nu_tree()), sub_faces_0 = lambda f:f.sub_faces_s_tam(0), scales = scales, **args)
+
 
 @add_metaclass(InheritComparisonClasscallMetaclass)
 class NuTree(Element):
@@ -3073,15 +3248,28 @@ class NuTree(Element):
 
     def _construct_point_graph(self):
         G = Graph()
+        rectangles = []
         for i,j in self._points:
-            for k in range(j-1,-1,-1):
-                if self._point_matrix[k][i]:
-                    G.add_edge(((i,j),(i,k)))
+            for x in range(i-1,-1,-1):
+                if self._point_matrix[j][x]:
+                    G.add_edge(((i,j),(x,j)))
                     break
-            for k in range(i+1,self._n):
-                if self._point_matrix[j][k]:
-                    G.add_edge(((i,j),(k,j)))
-                    break
+            else:
+                for y in range(j+1, len(self._point_matrix)):
+                    if self._point_matrix[y][i]:
+                        G.add_edge(((i,j),(i,y)))
+                        break
+                else:
+                    for x in range(i-1,-1,-1):
+                        found = False
+                        for y in range(j+1, len(self._point_matrix)):
+                            if self._point_matrix[y][x]:
+                                rectangles.append(((i,j), (x,y)))
+                                found = True
+                                break
+                        if found:
+                            break
+        self._rectangles = rectangles
         self._point_graph = G
 
     def _repr_(self):
@@ -3126,11 +3314,22 @@ class NuTree(Element):
         st += point_str
         st+="\n"
 
+        point_str = ""
+        for p1,p2 in self._rectangles:
+            st+="\\draw[red, dashed, line width = 4, fill=red!30, opacity = .5] (" + str(p1[0]-off) + "," + str(p1[1]+off) + ") rectangle (" + str(p2[0]-off) + "," + str(p2[1]+off) + ");\n"
+            point_str += "\\draw[red, fill=white, radius=0.15] (" +str(p2[0]-off) + ", " + str(p1[1]+off) +") circle;\n"
+
+
+
+
         for i,j in self._points:
             st+= "\\draw[red, fill, radius=0.15] (" + str(i-off) + "," + str(j+off) + ") circle;\n"
         st+="\n"
+
         for p1,p2,l in self._point_graph.edges():
             st+= "\\draw[red, line width = 4] ("+ str(p1[0]-off) + "," + str(p1[1]+off) + ") -- (" + str(p2[0]-off) + "," + str(p2[1]+off) + ");\n"
+        st+=point_str
+
         st+="\\end{tikzpicture}"
         return st
 
@@ -3876,7 +4075,7 @@ class LatticePrinter():
 
 class ComplexPrinter():
 
-    def __init__(self, objects, cover_relations, get_pos, scales = None, object_printer = None):
+    def __init__(self, objects, cover_relations, get_pos, scales = None, object_printer = None, sub_faces_0 = None):
         self._objects = objects
         self._cover_relations = cover_relations
         self._scales = scales
@@ -3884,9 +4083,13 @@ class ComplexPrinter():
             object_printer = lambda x: latex(x)
         if scales is None:
             scales = {0: .1, 1:.15, 2:.2}
+        if sub_faces_0 is None:
+            sub_faces_0 = lambda f:f.sub_faces(0)
+        self._sub_faces_0 = sub_faces_0
         self._scales = scales
         self._object_printer = object_printer
         self._get_pos = get_pos
+
 
 
     def _latex_(self):
@@ -3901,7 +4104,7 @@ class ComplexPrinter():
             px = 0.
             py = 0.
             nt = 0
-            for v in t.sub_faces(0):
+            for v in self._sub_faces_0(t):
                 p = self._get_pos(v.tree_min())
                 px += p[0].n()
                 py += p[1].n()
@@ -4676,3 +4879,8 @@ def check_doublings_disjoint_intervals(s):
                 #yield Poset([list(E), lambda x,y: x.sweak_lequal(y)])
 
     return True
+
+
+s022_stam_positions = {t:t.fixed_3d_coordinates() for t in SDecreasingTrees((0,2,2)).s_tamari_trees()}
+s022_stam_positions[SDecreasingTree(((0,2,2), {(3,2):1, (3,1):1, (2,1):2}))] = (4,-2,-2)
+s022_stam_positions[SDecreasingTree(((0,2,2), {(2,1):2}))] = (4,-4,0)

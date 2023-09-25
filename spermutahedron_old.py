@@ -2669,7 +2669,7 @@ def ieqs_iter(sperm):
     for i in range(len(sperm)-1):
         v1,v2 = sperm[i],sperm[i+1]
         if v1 < v2:
-            chamber = sum(c - 1 for b,c in counts.iteritems() if b > v1 and b < v2)
+            chamber = sum(c - 1 for b,c in counts.items() if b > v1 and b < v2)
             chamber += counts.get(v2,0)
             ieq = [0 for i in range(n+1)]
             ieq[0] = chamber
@@ -2677,7 +2677,7 @@ def ieqs_iter(sperm):
             ieq[v2] = 1
             yield ieq
         elif v1 > v2:
-            chamber = sum(c - 1 for b,c in counts.iteritems() if b > v2 and b < v1)
+            chamber = sum(c - 1 for b,c in counts.items() if b > v2 and b < v1)
             chamber += counts.get(v1,0)
             ieq = [0 for i in range(n+1)]
             ieq[0] = -chamber
