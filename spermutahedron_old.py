@@ -2764,6 +2764,15 @@ def spermPolyhedraProj3(s):
     pols = [p.projection(proj) for p in pols]
     return pols
 
+"""
+sage: matrix = Matrix([[-ZZ(1),-ZZ(1)], [-(sqrt(3)/2+1), -ZZ(3)/ZZ(2)], [-ZZ(1), -ZZ(2)]])
+sage: pols = spermPolyhedra(s)
+sage: proj = lambda x: list(Matrix(x)*matrix)[0]
+sage: projs = [p.projection() for p in pols] # ??
+sage: pols = [p.projection(proj) for p in pols]
+sage: sum(pol.render_outline_2d(axes= False) for pol in pols)
+"""
+
 def spermPolyhedraProj4(s):
     pols = spermPolyhedra(s)
     matrix = Matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1], [-ZZ(1)/3, -ZZ(1)/3, -ZZ(1)/3]])
