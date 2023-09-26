@@ -1,16 +1,13 @@
 # s-Weak Order and s-Permutahedron
 
-[![Binder](https://beta.mybinder.org/badge.svg)](https://mybinder.org/v2/gh/VivianePons/SWeakOrder/main)
-
-
 You will find here some raw research code and a demo related to the following series of papers:
 
-[1] C. Ceballos and V. Pons. The s-weak order and s-permutahedra I: Combinatorics and Lattice Structure
+[1] C. Ceballos and V. Pons. The s-weak order and s-permutahedra I: Combinatorics and Lattice Structure [arXiv:2212.11556](https://arxiv.org/abs/2212.11556), 2022
 
-[2] C. Ceballos and V. Pons. The s-weak order and s-permutahedra . In *31st International Conference on "Formal Power Series and Algebraic Combinatorics" (FPSAC 2019)*, volume 82B, Art. 76. Hanover, United States, 2019. Séminaire Lotharingien de Combinatoire. 
+[2] C. Ceballos and V. Pons. The s-weak order and s-permutahedra II: The combinatorial complex of pure intervals [arXiv:2309.14261](https://arxiv.org/abs/2309.14261), 2023
 
+[3] C. Ceballos and V. Pons. The s-weak order and s-permutahedra . In *31st International Conference on "Formal Power Series and Algebraic Combinatorics" (FPSAC 2019)*, volume 82B, Art. 76. Hanover, United States, 2019. Séminaire Lotharingien de Combinatoire. 
 
-They present examples and implementations of the computations and algorithms described in the papers. You can run them yourself and experiment by [clicking on this binder link](https://mybinder.org/v2/gh/VivianePons/SWeakOrder/main). (Expect to wait a few minutes for the server to load).
 
 ## Install
 
@@ -23,4 +20,4 @@ $ sudo apt-get -qy install imagemagick
 $ sage -pip install dot2tex
 ```
 
-The file [policy.xml](app/.magic/policy.xml) is an ImageMagick policy file which allows for converting pdf into png (not default), which makes it possible to show some of the latex created images directly in the notebook.
+The default configuration of ImageMagick does not convert pdf into png by default, which is necessary for printing laTeX created images directly in the notebook. This can be changed through the `policy.xml` file of the application. You can use the file [policy.xml](app/.magic/policy.xml) provided here.
