@@ -1856,8 +1856,8 @@ class SDecreasingTrees_s(SDecreasingTrees):
         """
         return [f.s_tamari_polyhedron(get_point) for f in SPureIntervalFaces(self.s()).facets() if f.is_s_tamari_valid()]
 
-@add_metaclass(InheritComparisonClasscallMetaclass)
-class SPureIntervalFace(Element):
+
+class SPureIntervalFace(Element, metaclass=InheritComparisonClasscallMetaclass):
 
     COLSEP = .1
 
@@ -3187,8 +3187,7 @@ class SPureIntervalFaces_s(SPureIntervalFaces):
         return ComplexPrinter(list(self.s_tamari_pure()), cover_relations, lambda t: (Matrix(dict_pos[t])*matrix)[0], object_printer = lambda t: latex(t.to_nu_tree()), sub_faces_0 = lambda f:f.sub_faces_s_tam(0), scales = scales, **args)
 
 
-@add_metaclass(InheritComparisonClasscallMetaclass)
-class NuTree(Element):
+class NuTree(Element, metaclass=InheritComparisonClasscallMetaclass):
 
     @staticmethod
     def __classcall_private__(cls, *args, **opts):
@@ -3656,8 +3655,7 @@ class NuTrees_nu(NuTrees):
         return LatticePrinter(self.nu_tamari_poset(), lambda nut: (Matrix(nut.to_s_decreasing_tree().fixed_3d_coordinates())*matrix)[0], scale=.1, object_printer = lambda nut: latex(nut))
 
 
-@add_metaclass(InheritComparisonClasscallMetaclass)
-class NuPath(Element):
+class NuPath(Element, metclass=InheritComparisonClasscallMetaclass):
 
     @staticmethod
     def __classcall_private__(cls, *args, **opts):
