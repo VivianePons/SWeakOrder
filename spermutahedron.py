@@ -19,6 +19,7 @@ from sage.misc.misc import subsets
 from sage.misc.misc_c import prod
 from sage.plot.line import line
 from sage.rings.all import NN, ZZ, QQ
+from sage.rings.qqbar import AA
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.sets.disjoint_union_enumerated_sets import DisjointUnionEnumeratedSets
 from sage.structure.element import Element
@@ -598,6 +599,85 @@ class SDecreasingTree(Element):
 
         """
         return len(self._s)
+
+    def chamber_ascent_inequality(self, ascent):
+        a,c = ascent
+        v = self.inversion(c,a)
+        for b in range(a+1,c):
+            if self.inversion(b,a) > 0:
+                v+= self.inversion(b,a) - 1
+        ieq = [0] * (self.size()+1)
+        ieq[0] = v
+        ieq[a] = -1
+        ieq[c] = 1
+        return ieq
+
+    def chamber_ac_inequality(self, a, c):
+        v = 0
+        for b in range(a+1,c+1):
+            v+=self.inversion(b,a)
+            if self.inversion(b,a) == self._s[b-1]:
+                v-=1
+        ieq = [0] * (self.size()+1)
+        ieq[0] = v
+        ieq[a] = -1
+        ieq[c] = 1
+        return ieq
+
+    def chamber_descent_inequality(self, descent):
+        c,a = descent
+        v = self.inversion(c,a) - 1
+        for b in range(a+1,c):
+            if self.inversion(b,a) > 0:
+                v+= self.inversion(b,a) - 1
+        ieq = [0] * (self.size()+1)
+        ieq[0] = -v
+        ieq[a] = 1
+        ieq[c] = -1
+        return ieq
+
+    def chamber_ca_inequality(self, c, a):
+        v = 0
+        for b in range(a+1,c+1):
+            if self.inversion(b,a) > 0:
+                v+= self.inversion(b,a) - 1
+        ieq = [0] * (self.size()+1)
+        ieq[0] = -v
+        ieq[a] = 1
+        ieq[c] = -1
+        return ieq
+
+
+
+
+    def chamber_inequalities(self):
+        for ascent in self.tree_ascents():
+            yield self.chamber_ascent_inequality(ascent)
+        for descent in self.tree_descents():
+            yield self.chamber_descent_inequality(descent)
+
+    def chamber_redondant_inequalities(self):
+        n = self.size()
+        for a in range(1,n):
+            for c in range(a+1,n+1):
+                if self.inversion(c,a) > 0:
+                    yield self.chamber_ca_inequality(c,a)
+                if self.inversion(c,a) < self._s[c-1]:
+                    yield self.chamber_ac_inequality(a,c)
+
+    def chamber(self):
+        n = self.size()
+        eq = [1 for i in range(n+1)]
+        eq[0] = 0
+        ieqs = list(self.chamber_inequalities())
+        return Polyhedron(ieqs=ieqs, eqns=[eq])
+
+    def chamber_redondant(self):
+        n = self.size()
+        eq = [1 for i in range(n+1)]
+        eq[0] = 0
+        ieqs = list(self.chamber_redondant_inequalities())
+        return Polyhedron(ieqs=ieqs, eqns=[eq])
 
     def _repr_(self):
         """
@@ -1732,6 +1812,13 @@ class SDecreasingTrees_s(SDecreasingTrees):
         v = [list(p[0]) for p in v]
         return line(v, **options)
 
+    def projected_pol(self, pol):
+        matrix = self.proj_matrix()
+        proj = lambda x: list(Matrix(x)*matrix)[0]
+        vertices = [proj(x) for x in pol.vertices()]
+        rays = [proj(x) for x in pol.rays()]
+        return Polyhedron(vertices = vertices, rays = rays, base_ring = AA)
+
     def projected_sweak_plot(self, get_point = None, **options):
         r"""
         EXAMPLES::
@@ -1782,6 +1869,10 @@ class SDecreasingTrees_s(SDecreasingTrees):
         p1 = self.projected_sweak_plot(color="blue", get_point = get_point)
         p2 = self.projected_s_tamari_plot(color = "red", get_point = get_point)
         return p1 + p2
+
+    def s_braid_arrangement_plot(self, **options):
+        P = [self.projected_pol(t.chamber()).plot(fill=False, axes = False, **options) for t in self]
+        return sum(P)
 
 
     def convex_hull(self, get_point = None):
@@ -4878,6 +4969,43 @@ def check_doublings_disjoint_intervals(s):
                 E.update(dt.rotate_ascent((a,c)) for dt in select)
                 #yield Poset([list(E), lambda x,y: x.sweak_lequal(y)])
 
+    return True
+
+### Checking s braid arrangement
+
+# checked on
+# 111
+# 122
+# 123
+# 1111
+# 1222
+# 1332
+def check_chamber_reondant(s):
+    for t in SDecreasingTrees(s):
+        if not t.chamber() == t.chamber_redondant():
+            return t
+    return True
+
+def epsilon_redondant_pol(t):
+    n = t.size()
+    eq = [1 for i in range(n+1)]
+    eq[0] = 0
+    borders = list(t.chamber_inequalities())
+    L = list(t.chamber_redondant_inequalities())
+    for ieq in L:
+        if not ieq in borders:
+            ieq[0] += Integer(1)/10 if ieq[0] > 0 else -Integer(1)/10
+    print(L)
+    return Polyhedron(ieqs = L, eqns=[eq])
+
+def check_limit_redondant(s):
+    n = len(s)
+    eq = [1 for i in range(n+1)]
+    eq[0] = 0
+    for t in SDecreasingTrees(s):
+        if len(list(t.chamber_redondant_inequalities())) != len(list(t.chamber_inequalities())):
+            if epsilon_redondant_pol(t) == t.chamber():
+                return t
     return True
 
 
