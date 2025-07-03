@@ -27,11 +27,9 @@ from sage.structure.parent import Parent
 from sage.structure.unique_representation import UniqueRepresentation
 
 from sage.sets.family import Family
-from six import add_metaclass
 
 
-@add_metaclass(InheritComparisonClasscallMetaclass)
-class SDecreasingTree(Element):
+class SDecreasingTree(Element, metaclass=InheritComparisonClasscallMetaclass):
     """
     EXAMPLES::
 
@@ -68,7 +66,7 @@ class SDecreasingTree(Element):
         P = SDecreasingTrees_all()
         return P.element_class(P, *args, **opts)
 
-    def __init__(self, parent, data = None):
+    def __init__(self, parent, data=None):
         Element.__init__(self, parent)
         if data is None:
             self._tree = LabelledOrderedTree([], label= "")
@@ -200,7 +198,7 @@ class SDecreasingTree(Element):
         yield w
         yield from self.ascendants(w)
 
-    def sub_tree_set(self,v):
+    def sub_tree_set(self, v):
         r"""
         EXAMPLES::
 
@@ -220,7 +218,6 @@ class SDecreasingTree(Element):
         s = {v}
         s.update(self.descendants(v))
         return s
-
 
     def middle_descendants(self, v):
         """
@@ -246,7 +243,7 @@ class SDecreasingTree(Element):
                 yield c.label()
                 yield from self.descendants(c.label())
 
-    def non_left_descendants(self,v):
+    def non_left_descendants(self, v):
         r"""
         EXAMPLES::
 
@@ -272,7 +269,7 @@ class SDecreasingTree(Element):
                 yield c.label()
                 yield from self.descendants(c.label())
 
-    def non_right_descendants(self,v):
+    def non_right_descendants(self, v):
         r"""
         EXAMPLES::
 
@@ -376,7 +373,7 @@ class SDecreasingTree(Element):
         n = self.size()
         for a in range(1,n):
             asc = self.tree_ascent(a)
-            if asc != None:
+            if asc is not None:
                 yield asc
 
     def nb_ascents(self):
@@ -388,7 +385,7 @@ class SDecreasingTree(Element):
         """
         return len(list(self.tree_ascents()))
 
-    def tree_ascent(self, a, check_right = True):
+    def tree_ascent(self, a, check_right=True):
         r"""
         EXAMPLES::
 
@@ -436,10 +433,10 @@ class SDecreasingTree(Element):
         n = self.size()
         for a in range(1,n):
             desc = self.tree_descent(a)
-            if desc != None:
+            if desc is not None:
                 yield desc
 
-    def tree_descent(self, a, check_left = True):
+    def tree_descent(self, a, check_left=True):
         r"""
         EXAMPLES::
 
@@ -466,8 +463,8 @@ class SDecreasingTree(Element):
         c,b = self.node_parent(a),a
         while self.node(c)[0].label() == b and c != n:
             c,b = self.node_parent(c),c
-        if self.inversion(c,a) > 0:
-            return (c,a)
+        if self.inversion(c, a) > 0:
+            return (c, a)
         return None
 
     def rotate_ascent(self, asc):
@@ -482,10 +479,10 @@ class SDecreasingTree(Element):
         """
         a,b = asc
         d = self._invs.copy()
-        d[(b,a)] = d.get((b,a),0)+1
+        d[(b, a)] = d.get((b, a), 0)+1
         for aa in self.non_left_descendants(a):
-            d[(b,aa)] = d.get((b,aa),0)+1
-        return SDecreasingTree((self.s(),d))
+            d[(b, aa)] = d.get((b, aa),0)+1
+        return SDecreasingTree((self.s(), d))
 
     def rotate_descent(self, desc):
         """
@@ -497,14 +494,14 @@ class SDecreasingTree(Element):
             3[2[[], 1[[]], []], [], []]
 
         """
-        b,a = desc
+        b, a = desc
         d = self._invs.copy()
-        d[(b,a)] = d.get((b,a),0)-1
+        d[(b, a)] = d.get((b, a),0)-1
         for aa in self.non_right_descendants(a):
-            d[(b,aa)] = d.get((b,aa),0)-1
-        return SDecreasingTree((self.s(),d))
+            d[(b, aa)] = d.get((b, aa),0)-1
+        return SDecreasingTree((self.s(), d))
 
-    def rotate_right(self, i, check_right = True):
+    def rotate_right(self, i, check_right=True):
         r"""
         EXAMPLES::
 
@@ -516,11 +513,11 @@ class SDecreasingTree(Element):
 
         """
         asc = self.tree_ascent(i, check_right)
-        if asc != None:
+        if asc is not None:
             return self.rotate_ascent(asc)
         return None
 
-    def rotate_left(self, i, check_left = True):
+    def rotate_left(self, i, check_left=True):
         r"""
         EXAMPLES::
 
@@ -532,7 +529,7 @@ class SDecreasingTree(Element):
 
         """
         desc = self.tree_descent(i, check_left)
-        if desc != None:
+        if desc is not None:
             return self.rotate_descent(desc)
         return None
 
@@ -568,7 +565,6 @@ class SDecreasingTree(Element):
                 yield dt
                 L.extend(succ for succ in dt.sweak_succ() if succ.sweak_lequal(dt2))
 
-
     def sweak_prec(self):
         """
         EXAMPLES::
@@ -588,7 +584,6 @@ class SDecreasingTree(Element):
         """
         for desc in self.tree_descents():
             yield self.rotate_descent(desc)
-
 
     def size(self):
         """
@@ -706,7 +701,7 @@ class SDecreasingTree(Element):
             return False
         return self._tree == other._tree
 
-    def __cmp__(self,other):
+    def __cmp__(self, other):
         if self._tree < other._tree:
             return -1
         elif self._tree == other._tree:
@@ -747,8 +742,6 @@ class SDecreasingTree(Element):
         """
         return latex(self._tree)
 
-
-
     def sweak_lequal(self, other):
         """
         EXAMPLES::
@@ -761,8 +754,8 @@ class SDecreasingTree(Element):
         """
         if self.s() != other.s():
             return False
-        for b,a in self.inversions():
-            if other.inversion(b,a) < self.inversion(b,a):
+        for b, a in self.inversions():
+            if other.inversion(b, a) < self.inversion(b, a):
                 return False
         return True
 
@@ -781,7 +774,7 @@ class SDecreasingTree(Element):
             True
 
         """
-        invs = {(b,a):max(self.inversion(b,a), other.inversion(b,a)) for b,a in set(self.inversions()).union(other.inversions())}
+        invs = {(b, a):max(self.inversion(b, a), other.inversion(b, a)) for b, a in set(self.inversions()).union(other.inversions())}
         invs = SDecreasingTrees.transitive_closure_inversions(self.s(), invs)
         return SDecreasingTree((self.s(), invs))
 
@@ -801,7 +794,7 @@ class SDecreasingTree(Element):
         """
         n = self.size()
         s = self.s()
-        vers = {(b,a):max(self.version(b,a),other.version(b,a)) for b in range(2,n+1) for a in range(1,b) if self.version(b,a) > 0 or other.version(b,a) >0}
+        vers = {(b, a):max(self.version(b, a),other.version(b, a)) for b in range(2,n+1) for a in range(1, b) if self.version(b, a) > 0 or other.version(b, a) > 0}
         vers = SDecreasingTrees.transitive_closure_inversions(self.s(),vers)
         invs = {(b,a): s[b-1] - vers.get((b,a),0) for b in range(2,n+1) for a in range(1,b)}
         return SDecreasingTree((s,invs))
@@ -813,9 +806,9 @@ class SDecreasingTree(Element):
             sage: SDecreasingTree(((0,2,2),{(3,2):1})).reverse_tree()
             3[[], 2[[], [], []], 1[[]]]
         """
-        return SDecreasingTree((self.s(), {(b,a):self.version(b,a) for b,a in self.versions()}))
+        return SDecreasingTree((self.s(), {(b, a):self.version(b, a) for b, a in self.versions()}))
 
-    def pure_intervals_starting(self, dimension = None):
+    def pure_intervals_starting(self, dimension=None):
         r"""
         EXAMPLES::
 
@@ -834,7 +827,7 @@ class SDecreasingTree(Element):
                 if dimension is None or len(subs) == dimension:
                     yield SPureIntervalFace(self, subs)
 
-    def pure_s_tam_intervals_starting(self, dimension = None):
+    def pure_s_tam_intervals_starting(self, dimension=None):
         r"""
         EXAMPLES::
 
@@ -856,7 +849,7 @@ class SDecreasingTree(Element):
     def variations(self, other):
         if not self.sweak_lequal(other):
             return None
-        return {(c,a):self.inversion(c,a) for c,a in other.inversions() if other.inversion(c,a) > self.inversion(c,a)}
+        return {(c, a):self.inversion(c, a) for c, a in other.inversions() if other.inversion(c, a) > self.inversion(c, a)}
 
     def essential_variations(self, other):
         s = self.s()
@@ -878,9 +871,9 @@ class SDecreasingTree(Element):
     def is_essential_variation_semi_transitive(self, other):
         evar = self.essential_variations(other)
 
-        for c,b in evar:
-            for a in range(1,b):
-                if (b,a) in evar and evar[(b,a)] == 0 and not (c,a) in evar:
+        for c, b in evar:
+            for a in range(1, b):
+                if (b, a) in evar and evar[(b, a)] == 0 and (c, a) not in evar:
                     return False
         return True
 
@@ -918,10 +911,10 @@ class SDecreasingTree(Element):
     def increase_arity(self, value):
         s = list(self.s())
         s[value-1] +=1
-        return SDecreasingTree((s,self._invs))
+        return SDecreasingTree((s, self._invs))
 
     def select_double(self, c, a):
-        return self.inversion(c,a) == self.s()[c-1] - 1 and all(self.inversion(b,a) == self.s()[b-1] for b in range(a+1,c) if self.inversion(c,b) == self.inversion(c,a))
+        return self.inversion(c, a) == self.s()[c-1] - 1 and all(self.inversion(b,a) == self.s()[b-1] for b in range(a+1,c) if self.inversion(c,b) == self.inversion(c,a))
 
     def subtree(self, nodes):
         """
@@ -944,49 +937,48 @@ class SDecreasingTree(Element):
             False
         """
         n = self.size()
-        for a in range(1,n):
-            for b in range(a+1,n):
-                for c in range(b+1,n+1):
-                    if self.inversion(c,a) > self.inversion(c,b):
+        for a in range(1, n):
+            for b in range(a+1, n):
+                for c in range(b+1, n+1):
+                    if self.inversion(c, a) > self.inversion(c, b):
                         return False
         return True
 
     def is_s_tamari_max(self):
         n = self.size()
         s = self.s()
-        for a in range(1,n):
-            for b in range(a+1,n):
-                for c in range(b+1,n+1):
-                    if self.inversion(c,a) < s[c-1]  and self.inversion(b,a) == s[b-1] and self.inversion(c,a) >= self.inversion(c,b):
+        for a in range(1, n):
+            for b in range(a+1, n):
+                for c in range(b+1, n+1):
+                    if self.inversion(c, a) < s[c-1]  and self.inversion(b, a) == s[b-1] and self.inversion(c, a) >= self.inversion(c, b):
                         return False
         return True
 
     def s_tamari_class_succ(self):
         for a,c in self.tree_ascents():
-            for b in range(a+1,c):
-                if self.inversion(c,a) >= self.inversion(c,b) and self.inversion(b,a) == self.s()[b-1]:
-                    yield self.rotate_ascent((a,c))
+            for b in range(a+1, c):
+                if self.inversion(c, a) >= self.inversion(c, b) and self.inversion(b, a) == self.s()[b-1]:
+                    yield self.rotate_ascent((a, c))
 
     def s_tamari_class(self):
         dt = self.to_s_tamari_min()
         seen = set()
         L = [dt]
-        while len(L) != 0:
+        while L:
             dt = L.pop()
             if not dt in seen:
                 seen.add(dt)
                 yield dt
                 L.extend(dt.s_tamari_class_succ())
 
-
     def to_s_tamari_min(self):
         n = self.size()
         d = dict(self._invs)
-        for a in range(1,n):
-            for b in range(a+1,n):
+        for a in range(1, n):
+            for b in range(a+1, n):
                 for c in range(b+1, n+1):
-                    if d.get((c,a),0) > d.get((c,b),0):
-                        d[(c,a)] = d.get((c,b),0)
+                    if d.get((c, a), 0) > d.get((c, b), 0):
+                        d[(c, a)] = d.get((c, b), 0)
         return SDecreasingTree((self.s(), d))
 
     def to_s_tamari_max(self):
@@ -999,7 +991,6 @@ class SDecreasingTree(Element):
                     if self.inversion(c,a) >= self.inversion(c,b) and self.inversion(b,a) == s[b-1]:
                         d[(c,a)] = s[c-1]
         return SDecreasingTree((self.s(), d))
-
 
     def tamari_ascents(self):
         r"""
@@ -1019,7 +1010,7 @@ class SDecreasingTree(Element):
         for i in range(1,n):
             p = self.node_parent(i)
             if self.inversion(p,i) < self.s()[p-1]:
-                yield (i,p)
+                yield (i, p)
 
     def s_tamari_succ(self):
         r"""
@@ -1244,7 +1235,7 @@ class SDecreasingTrees(UniqueRepresentation, Parent):
         return d
 
     @staticmethod
-    def tree_from_inversions(s, inversions, subset = None):
+    def tree_from_inversions(s, inversions, subset=None):
         if subset is None:
             n = len(s)
             subset = {i for i in range(1,n+1)}
@@ -1319,7 +1310,7 @@ class SDecreasingTrees_all(DisjointUnionEnumeratedSets, SDecreasingTrees):
     def _repr_(self):
         return "S-decreasing trees"
 
-    def _element_constructor_(self, data = None):
+    def _element_constructor_(self, data=None):
         return self.element_class(self, data)
 
     def __contains__(self, t):
@@ -1746,7 +1737,7 @@ class SDecreasingTrees_s(SDecreasingTrees):
             return Matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1], [-ZZ(1)/3, -ZZ(1)/3, -ZZ(1)/3]])
         raise NotImplementedError("No projection matrix for n > 4")
 
-    def edges_polyhedrons(self, get_point = None):
+    def edges_polyhedrons(self, get_point=None):
         r"""
         EXAMPLES::
 
@@ -1766,7 +1757,7 @@ class SDecreasingTrees_s(SDecreasingTrees):
                 edges.append(Polyhedron([get_point(tree), get_point(tree2)]))
         return edges
 
-    def s_tamari_edges_polyhedrons(self, get_point = None):
+    def s_tamari_edges_polyhedrons(self, get_point=None):
         r"""
         EXAMPLES::
 
@@ -1819,7 +1810,8 @@ class SDecreasingTrees_s(SDecreasingTrees):
         rays = [proj(x) for x in pol.rays()]
         return Polyhedron(vertices = vertices, rays = rays, base_ring = AA)
 
-    def projected_sweak_plot(self, get_point = None, **options):
+
+    def projected_sweak_plot(self, get_point=None, **options):
         r"""
         EXAMPLES::
 
@@ -1840,7 +1832,7 @@ class SDecreasingTrees_s(SDecreasingTrees):
         P = [self.projected_edge_plot(e, **options) for e in edges]
         return sum(P)
 
-    def projected_s_tamari_plot(self, get_point = None, **options):
+    def projected_s_tamari_plot(self, get_point=None, **options):
         r"""
         EXAMPLES::
 
@@ -1857,7 +1849,7 @@ class SDecreasingTrees_s(SDecreasingTrees):
         P = [self.projected_edge_plot(e, **options) for e in edges]
         return sum(P)
 
-    def projected_both_plot(self, get_point = None):
+    def projected_both_plot(self, get_point=None):
         r"""
         EXAMPLES::
 
@@ -1875,7 +1867,7 @@ class SDecreasingTrees_s(SDecreasingTrees):
         return sum(P)
 
 
-    def convex_hull(self, get_point = None):
+    def convex_hull(self, get_point=None):
         r"""
         EXAMPLES::
 
@@ -1889,7 +1881,7 @@ class SDecreasingTrees_s(SDecreasingTrees):
         return Polyhedron([get_point(t) for t in self.border_trees()])
 
     @cached_method
-    def filtered_facet_border_inequalities(self, validator = None, get_point = None):
+    def filtered_facet_border_inequalities(self, validator=None, get_point=None):
         r"""
         EXAMPLES::
 
@@ -1916,7 +1908,7 @@ class SDecreasingTrees_s(SDecreasingTrees):
         return border_ieqs
 
     @cached_method
-    def s_tamari_border_inequalities(self, get_point = None):
+    def s_tamari_border_inequalities(self, get_point=None):
         r"""
         EXAMPLES::
 
@@ -1929,7 +1921,7 @@ class SDecreasingTrees_s(SDecreasingTrees):
         """
         return self.filtered_facet_border_inequalities(validator = lambda x: x.is_s_tamari_valid())
 
-    def facet_polyhedrons(self, get_point = None):
+    def facet_polyhedrons(self, get_point=None):
         r"""
         EXAMPLES::
 
@@ -1944,7 +1936,7 @@ class SDecreasingTrees_s(SDecreasingTrees):
         """
         return [f.s_weak_polyhedron(get_point) for f in SPureIntervalFaces(self.s()).facets()]
 
-    def s_tamari_facet_polyhedrons(self, get_point = None):
+    def s_tamari_facet_polyhedrons(self, get_point=None):
         r"""
         EXAMPLES::
 
@@ -1957,8 +1949,8 @@ class SDecreasingTrees_s(SDecreasingTrees):
         """
         return [f.s_tamari_polyhedron(get_point) for f in SPureIntervalFaces(self.s()).facets() if f.is_s_tamari_valid()]
 
-@add_metaclass(InheritComparisonClasscallMetaclass)
-class SPureIntervalFace(Element):
+
+class SPureIntervalFace(Element, metaclass=InheritComparisonClasscallMetaclass):
 
     COLSEP = .1
 
@@ -2374,7 +2366,7 @@ class SPureIntervalFace(Element):
         """
         return self.tree_min().sweak_lequal(t) and t.sweak_lequal(self.tree_max())
 
-    def sub_faces(self, dimension = None):
+    def sub_faces(self, dimension=None):
         r"""
         EXAMPLES::
 
@@ -2408,7 +2400,7 @@ class SPureIntervalFace(Element):
                 if self.include_face(f):
                     yield f
 
-    def sub_faces_s_tam(self, dimension = None):
+    def sub_faces_s_tam(self, dimension=None):
         r"""
         EXAMPLES::
 
@@ -2600,7 +2592,7 @@ class SPureIntervalFace(Element):
             A = t.sub_tree_set(i).intersection(T.sub_tree_set(i))
             if t.inversion(parent,i) == 0:
                 t0 = t.rotate_left(i, False)
-                if t0 != None and self.include_tree(t0):
+                if t0 is not None and self.include_tree(t0):
                     #moved_parents = [p for p in parents if any(t.inversion(j,p) != T.inversion(j,p) for j in range(p+1,n+1))]
                     moved_parents = [p for p in parents if started_moving(t,p)]
                     #print(moved_parents)
@@ -2615,7 +2607,7 @@ class SPureIntervalFace(Element):
             if t.inversion(parent,i) == s[parent-1]:
                 t0 = t.rotate_right(i, False)
                 #print(t0)
-                if t0 != None and self.include_tree(t0):
+                if t0 is not None and self.include_tree(t0):
                     #unmoved_parents = [p for p in parents if all(t.inversion(j,p) == T.inversion(j,p) for j in range(p+1,n+1))]
                     unmoved_parents = [p for p in parents if not started_moving(t,p)]
                     unmoved_parent = min(unmoved_parents)
@@ -2811,7 +2803,7 @@ class SPureIntervalFace(Element):
                             return False
         return True
 
-    def s_weak_polyhedron(self, get_point = None):
+    def s_weak_polyhedron(self, get_point=None):
         r"""
         EXAMPLES::
 
@@ -2822,8 +2814,7 @@ class SPureIntervalFace(Element):
             get_point = SDecreasingTrees(self.s())._get_point_default
         return Polyhedron([get_point(t) for t  in self.interval_trees()])
 
-
-    def s_tamari_polyhedron(self, get_point = None):
+    def s_tamari_polyhedron(self, get_point=None):
         r"""
         EXAMPLES::
 
@@ -2846,7 +2837,7 @@ class SPureIntervalFace(Element):
             return Polyhedron(ieqs = v_ieqs, eqns = pol.equations())
         return None
 
-    def s_tamari_get_point(self,t, get_point = None):
+    def s_tamari_get_point(self,t, get_point=None):
         if get_point is None:
             get_point = SDecreasingTrees(self.s())._get_point_default
         facets = [ft for ft in self.sub_facets() if ft.is_s_tamari_valid()]
@@ -2863,7 +2854,6 @@ class SPureIntervalFace(Element):
             v_ieqs.extend(borders)
             return Polyhedron(ieqs = v_ieqs, eqns = pol.equations())
         return None
-
 
     def movable_descendants(self, c):
         root = self.tree_min().node(c)
@@ -2885,7 +2875,7 @@ class SPureIntervalFace(Element):
                 if len(node) > 1:
                     L.append(node[-2])
 
-    def left_movable_paths(self, i = None):
+    def left_movable_paths(self, i=None):
         if i is None:
             for i in range(1,F.size()):
                 yield from self.left_movable_paths(i)
@@ -3134,7 +3124,7 @@ class SPureIntervalFaces_s(SPureIntervalFaces):
         for t in SDecreasingTrees(self.s()).s_tamari_trees():
             yield from t.pure_s_tam_intervals_starting(dimension)
 
-    def border_faces(self, dimension = None):
+    def border_faces(self, dimension=None):
         r"""
         EXAMPLES::
 
@@ -3271,7 +3261,7 @@ class SPureIntervalFaces_s(SPureIntervalFaces):
         matrix = self.proj_matrix()
         return ComplexPrinter(list(self), cover_relations, lambda t: (Matrix(t.fixed_3d_coordinates())*matrix)[0], object_printer = lambda t: latex(t).replace("[auto]","[every node/.style={inner sep = 3pt}]"), **args)
 
-    def s_tamari_complex_printer(self, dict_pos = None, **args):
+    def s_tamari_complex_printer(self, dict_pos=None, **args):
         L = SDecreasingTrees(self.s()).s_tamari_lattice()
         cover_relations = [(SPureIntervalFace(t1,[]), SPureIntervalFace(t2,[])) for t1,t2 in L.cover_relations()]
         matrix = self.proj_matrix()
@@ -3279,7 +3269,7 @@ class SPureIntervalFaces_s(SPureIntervalFaces):
             dict_pos = {t: t.fixed_3d_coordinates() for t in L}
         return ComplexPrinter(list(self.s_tamari_pure()), cover_relations, lambda t: (Matrix(dict_pos[t])*matrix)[0], object_printer = lambda t: latex(t).replace("[auto]","[every node/.style={inner sep = 3pt}]"), sub_faces_0 = lambda f:f.sub_faces_s_tam(0), **args)
 
-    def nu_tamari_complex_printer(self, dict_pos = None, scales = None, **args):
+    def nu_tamari_complex_printer(self, dict_pos=None, scales=None, **args):
         L = SDecreasingTrees(self.s()).s_tamari_lattice()
         cover_relations = [(SPureIntervalFace(t1,[]), SPureIntervalFace(t2,[])) for t1,t2 in L.cover_relations()]
         matrix = self.proj_matrix()
@@ -3290,8 +3280,7 @@ class SPureIntervalFaces_s(SPureIntervalFaces):
         return ComplexPrinter(list(self.s_tamari_pure()), cover_relations, lambda t: (Matrix(dict_pos[t])*matrix)[0], object_printer = lambda t: latex(t.to_nu_tree()), sub_faces_0 = lambda f:f.sub_faces_s_tam(0), scales = scales, **args)
 
 
-@add_metaclass(InheritComparisonClasscallMetaclass)
-class NuTree(Element):
+class NuTree(Element, metaclass=InheritComparisonClasscallMetaclass):
 
     @staticmethod
     def __classcall_private__(cls, *args, **opts):
@@ -3507,7 +3496,7 @@ class NuTrees_all(DisjointUnionEnumeratedSets, NuTrees):
     def _repr_(self):
         return "NuTrees"
 
-    def _element_constructor_(self, data = None):
+    def _element_constructor_(self, data=None):
         return self.element_class(self, data)
 
     def __contains__(self, t):
@@ -3759,8 +3748,7 @@ class NuTrees_nu(NuTrees):
         return LatticePrinter(self.nu_tamari_poset(), lambda nut: (Matrix(nut.to_s_decreasing_tree().fixed_3d_coordinates())*matrix)[0], scale=.1, object_printer = lambda nut: latex(nut))
 
 
-@add_metaclass(InheritComparisonClasscallMetaclass)
-class NuPath(Element):
+class NuPath(Element, metclass=InheritComparisonClasscallMetaclass):
 
     @staticmethod
     def __classcall_private__(cls, *args, **opts):
@@ -3942,7 +3930,7 @@ class NuPaths_all(DisjointUnionEnumeratedSets, NuTrees):
     def _repr_(self):
         return "NuPaths"
 
-    def _element_constructor_(self, data = None):
+    def _element_constructor_(self, data=None):
         return self.element_class(self, data)
 
     def __contains__(self, t):
@@ -4136,7 +4124,7 @@ class NuPaths_nu(NuTrees):
 
 class LatticePrinter():
 
-    def __init__(self, lattice, get_pos, scale = .2, object_printer = None):
+    def __init__(self, lattice, get_pos, scale = .2, object_printer=None):
         self._lattice = lattice
         self._scale = scale
         if object_printer is None:
@@ -4166,7 +4154,7 @@ class LatticePrinter():
 
 class ComplexPrinter():
 
-    def __init__(self, objects, cover_relations, get_pos, scales = None, object_printer = None, sub_faces_0 = None):
+    def __init__(self, objects, cover_relations, get_pos, scales=None, object_printer=None, sub_faces_0=None):
         self._objects = objects
         self._cover_relations = cover_relations
         self._scales = scales
@@ -4356,7 +4344,7 @@ def check_essential_variations_intersection(s):
     for f1 in F:
         for f2 in F:
             f3 = f1.intersection(f2)
-            if f3 != None:
+            if f3 is not None:
                 ev3 = set(f3.essential_variations().items())
                 ev12 = set(f2.essential_variations().items()).intersection(set(f1.essential_variations().items()))
                 if ev12 != ev3:
@@ -4369,7 +4357,7 @@ def check_essential_variations_intersection_rule(s):
     for f1 in F:
         for f2 in F:
             f3 = f1.intersection(f2)
-            if f3 != None:
+            if f3 is not None:
                 ev3 = set(f3.essential_variations().items())
                 var12 = set(f2.variations().items()).intersection(set(f1.variations().items()))
                 union12 = set(f2.essential_variations().items()).union(set(f1.essential_variations().items()))
@@ -4388,7 +4376,7 @@ def check_essential_variations_weak_intersection_rule(s):
     for f1 in F:
         for f2 in F:
             f3 = f1.intersection(f2)
-            if f3 != None:
+            if f3 is not None:
                 ev3 = set(f3.essential_variations().items())
                 var12 = set(f2.variations().items()).intersection(set(f1.variations().items()))
                 union12 = set(f2.essential_variations().items()).union(set(f1.essential_variations().items()))
@@ -4411,7 +4399,7 @@ def check_essential_variations_last_rule(s):
     for f1 in F:
         for f2 in F:
             f3 = f1.intersection(f2)
-            if f3 != None:
+            if f3 is not None:
                 ev3 = f3.essential_variations()
                 ev1 = f1.essential_variations()
                 ev2 = f2.essential_variations()
@@ -4438,7 +4426,7 @@ def check_essential_variations_last_rule_iif(s):
     for f1 in F:
         for f2 in F:
             f3 = f1.intersection(f2)
-            if f3 != None:
+            if f3 is not None:
                 ev3 = set(f3.essential_variations().items())
                 ev1 = f1.essential_variations()
                 ev2 = f2.essential_variations()
@@ -4467,7 +4455,7 @@ def check_essential_variations_compatible(s):
     for f1 in F:
         for f2 in F:
             f3 = f1.intersection(f2)
-            if f3 != None:
+            if f3 is not None:
                 ev3 = f3.essential_variations()
                 ev1 = f1.essential_variations()
                 ev2 = f2.essential_variations()
@@ -4496,7 +4484,7 @@ def check_essential_variations_compatible2(s):
     for f1 in F:
         for f2 in F:
             f3 = f1.intersection(f2)
-            if f3 != None:
+            if f3 is not None:
                 ev3 = f3.essential_variations()
                 ev1 = f1.essential_variations()
                 ev2 = f2.essential_variations()
@@ -4522,7 +4510,7 @@ def check_essential_variations_compatible_intersection(s):
     for f1 in F:
         for f2 in F:
             f3 = f1.intersection(f2)
-            if f3 != None:
+            if f3 is not None:
                 ev3 = f3.essential_variations()
                 v1 = f1.variations()
                 v2 = f2.variations()
@@ -4545,7 +4533,7 @@ def check_variations_intersection(s):
     for f1 in F:
         for f2 in F:
             f3 = f1.intersection(f2)
-            if f3 != None:
+            if f3 is not None:
                 ev3 = set(f3.variations().items())
                 ev12 = set(f2.variations().items()).intersection(set(f1.variations().items()))
                 if ev12 != ev3:
@@ -4570,7 +4558,7 @@ def check_variation_path_intersection(s):
     for f1 in F:
         for f2 in F:
             f3 = f1.intersection(f2)
-            if f3 != None:
+            if f3 is not None:
                 for (c,a) in f3.variations():
                     path = f3.variation_path(c,a)
                     p1 = f1.variation_path(c,a)
@@ -4586,8 +4574,8 @@ def test_ca_cb_essential_var(s):
     for f1 in F:
         for f2 in F:
             f3 = f1.intersection(f2)
-            if f3 != None:
-                for (c,a) in f3.essential_variations():
+            if f3 is not None:
+                for c, a in f3.essential_variations():
                     v = f3.inversion_min(c,a)
                     for b in range(a+1,c):
                         if f3.is_essential_variation(c,b) and f3.inversion_min(c,b) == v  and (not f1.is_essential_variation(c,b) or not f2.is_essential_variation(c,b)):
@@ -4638,7 +4626,7 @@ def test_ca_cb_intersection_ev(s):
             ev1 = f1.essential_variations()
             ev2 = f2.essential_variations()
             f3 = f1.intersection(f2)
-            if f3 != None:
+            if f3 is not None:
                 ev3 = f3.essential_variations()
                 for c in range(1,n+1):
                     for b in range(1,c):
@@ -4659,7 +4647,7 @@ def test_ca_cb_intersection_ev_strong(s):
             ev1 = f1.essential_variations()
             ev2 = f2.essential_variations()
             f3 = f1.intersection(f2)
-            if f3 != None:
+            if f3 is not None:
                 ev3 = f3.essential_variations()
                 for c in range(1,n+1):
                     for b in range(1,c):
@@ -4680,7 +4668,7 @@ def test_ca_cb_intersection_ev_ca_impl_cb(s):
             ev1 = f1.essential_variations()
             ev2 = f2.essential_variations()
             f3 = f1.intersection(f2)
-            if f3 != None:
+            if f3 is not None:
                 ev3 = f3.essential_variations()
                 for c in range(1,n+1):
                     for b in range(1,c):
